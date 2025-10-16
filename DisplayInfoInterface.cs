@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace LibrarySystem
 {
-    internal class Program
+    internal interface DisplayInfoInterface
     {
-        static void Main(string[] args)
-        {
-        }
+        void DisplayInfo();
     }
 }

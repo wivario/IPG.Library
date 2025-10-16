@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace LibrarySystem
 {
-    internal class Program
+    internal interface NotificationInterface
     {
-        static void Main(string[] args)
-        {
-        }
+        void SendNotification(string message);
     }
 }
