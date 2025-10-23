@@ -1,181 +1,104 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LibrarySystem
 {
+    /// <summary>
+    /// حالة الكتاب داخل المكتبة.
+    /// </summary>
     public enum BookStatus
     {
         Available,
-        Sold,
+        Reserved,
         Borrowed,
-        Reserved
+        Sold
     }
+
+    /// <summary>
+    /// لغة الكتاب.
+    /// </summary>
     public enum BookLanguage
     {
+        Arabic,
         English,
-        Arabic
-        //....
+        French,
+        Other
     }
+
+    /// <summary>
+    /// نوع الكتاب أو تصنيفه.
+    /// </summary>
     public enum BookType
     {
-        Ditective,
-        Romance,
-        Horror,
-        Science
-        //....
+        Science,
+        History,
+        Novel,
+        Educational,
+        Other
     }
-    internal class Book : DisplayInfoInterface
-    {
-        private readonly int id;
-        private string BookTitle;
-        private string Author;
-        private int PublicationYear;
-        private string PublicationHouse;
-        private BookType Type;
-        private BookStatus Status;
-        private BookLanguage Language;
 
-        public Book(string title, string author, int publicationyear, string publicationhouse,
-            BookType type, BookStatus status, BookLanguage language)
+    /// <summary>
+    /// فئة تمثل كتابًا. ترث ItemBase وتطبّق IDisplayInfo صراحة.
+    /// </summary>
+    public class Book : ItemBase, IDisplayInfo
+    {
+        // خصائص خاصة بالكتاب
+        public string Author { get; private set; }
+        public int PublicationYear { get; private set; }
+        public string Publisher { get; private set; }
+        public BookType Type { get; private set; }
+        public BookStatus Status { get; private set; }
+        public BookLanguage Language { get; private set; }
+
+        /// <summary>الباني يتحقق من صحة المعطيات ثم يخزنها.</summary>
+        public Book(string title, string author, int publicationYear, string publisher,
+                    BookType type, BookLanguage language = BookLanguage.English,
+                    BookStatus status = BookStatus.Available)
+            : base(title)
         {
-            this.BookTitle = title;
-            this.Author = author;
-            this.PublicationYear = publicationyear;
-            this.PublicationHouse = publicationhouse;
-            this.Type = type;
-            this.Status = status;
-            this.Language = language;
+            Validator.ThrowIfNullOrEmpty(author, nameof(author));
+            Validator.ThrowIfNullOrEmpty(publisher, nameof(publisher));
+            if (publicationYear < 1500 || publicationYear > DateTime.Now.Year)
+                throw new ArgumentException("Invalid publication year.", nameof(publicationYear));
+
+            Author = author.Trim();
+            PublicationYear = publicationYear;
+            Publisher = publisher.Trim();
+            Type = type;
+            Language = language;
+            Status = status;
         }
-        public int BookID
+
+        /// <summary>
+        /// عند استخدام الكتاب (استعارته) — نتحقق من الحالة ونزيد العداد ونحدّث الحالة.
+        /// </summary>
+        public override void Use()
         {
-            get { return id; }
-        }
-        public string _Title
-        {
-            get { return BookTitle; }
-            private set
+            if (Status == BookStatus.Available)
             {
-                if (string.IsNullOrEmpty(value) || value.Length <= 2)
-                    throw new ArgumentException("The title of the book should not " +
-                            "be empty or less than three characters");
-                BookTitle = value;
-            }
-        }
-        public string _Author
-        {
-            get
-            {
-                return Author;
-            }
-            private set
-            {
-                Author = value;
-            }
-        }
-        public int _PublicationYear
-        {
-            get => PublicationYear;
-            private set
-            {
-                PublicationYear = value;
-            }
-        }
-        public string _PublicationHouse
-        {
-            get => PublicationHouse;
-            private set
-            {
-                PublicationHouse = value;
-            }
-        }
-        public BookLanguage _Language
-        {
-            get => Language;
-            private set
-            {
-                Language = value;
-            }
-        }
-        public BookType _Type
-        {
-            get => Type;
-            private set
-            {
-                Type = value;
-            }
-        }
-        public BookStatus _Status
-        {
-            get => Status;
-            set
-            {
-                Status = value;
-            }
-        }
-        public virtual void DisplayInfo()
-        {
-            Console.WriteLine(this.id + this.BookTitle + this.Author + this.PublicationHouse +
-                this.Type + this.Status + this.Language);
-        }
-        public void UpdateTitle(string newTitle)
-        {
-            if (string.IsNullOrEmpty(newTitle) || newTitle.Length <= 2)
-                throw new ArgumentException("The title of the book should not " +
-                        "be empty or less than three characters");
-            this._Title = newTitle;
-        }
-        public void UpdateAuthor(string newAuthor)
-        {
-            if (string.IsNullOrEmpty(newAuthor) || newAuthor.Length <= 2)
-                throw new ArgumentException("The title of the book should not " +
-                        "be empty or less than three characters");
-            this._Author = newAuthor;
-        }
-        public void Available()
-        {
-            if (Status != BookStatus.Available)
-            {
-                Status = BookStatus.Reserved;
-                Console.WriteLine("This book is reserved");
-            }
-            else if (Status != BookStatus.Available)
-            {
-                Status = BookStatus.Sold;
-                Console.WriteLine("This book is sold");
-            }
-            else
                 Status = BookStatus.Borrowed;
-            Console.WriteLine("this book is borrowed");
-        }
-        public void Reserved()
-        {
-            if (Status != BookStatus.Reserved)
-            {
-                Status = BookStatus.Sold;
-                Console.WriteLine("This book is sold");
-            }
-            else if (Status != BookStatus.Reserved)
-            {
-                Status = BookStatus.Available;
-                Console.WriteLine("This book is available");
+                IncrementBorrowCount();
+                Console.WriteLine($"[Success]: Book \"{Title}\" has been borrowed.");
             }
             else
-                Status = BookStatus.Borrowed;
-            Console.WriteLine("this book is borrowed");
-        }
-        public void Borrowed()
-        {
-            if (Status != BookStatus.Borrowed)
             {
-                Status = BookStatus.Available;
-                Console.WriteLine("this book is available");
+                Console.WriteLine($"[Info]: Book \"{Title}\" cannot be borrowed. Current status: {Status}.");
             }
-            else
-                Status = BookStatus.Sold;
-            Console.WriteLine("This book is sold");
         }
+
+        /// <summary>عرض معلومات مفصّلة عن الكتاب.</summary>
+        public override void DisplayInfo()
+        {
+            base.DisplayInfo();
+            Console.WriteLine($"  Author: {Author}");
+            Console.WriteLine($"  PublicationYear: {PublicationYear}");
+            Console.WriteLine($"  Publisher: {Publisher}");
+            Console.WriteLine($"  Type: {Type}");
+            Console.WriteLine($"  Language: {Language}");
+            Console.WriteLine($"  Status: {Status}");
+        }
+
+        public void MarkAvailable() => Status = BookStatus.Available;
+        public void MarkReserved() => Status = BookStatus.Reserved;
+        public void MarkSold() => Status = BookStatus.Sold;
     }
 }

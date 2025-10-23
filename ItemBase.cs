@@ -1,69 +1,82 @@
 ﻿using System;
 
-namespace IPG.Library
+namespace LibrarySystem
 {
     /// <summary>
-    /// فئة مجردة (abstract) تطبق IItem وتحتوي المنطق المشترك لكل العناصر.
-    /// - الحقول private
-    /// - خصائص مع التحقق (validation) عند التعيين
-    /// - دالة مجردة Use() تُعاد تعريفها في الفئات الفرعية (مثلاً Book)
+    /// الفئة الأساسية المجردة لكل عناصر المكتبة.
+    /// تطبق IDisplayInfo وIItem، وتحتوي المنطق المشترك (Id, Title, BorrowCount, Events).
     /// </summary>
-    public abstract class ItemBase : IItem
+    public abstract class ItemBase : IItem, IDisplayInfo
     {
-        // حقول خاصة (private) — لا تُكشف مباشرة للخارج
+        // حقل خاص لتخزين المعرف الفريد
         private readonly Guid _id;
+
+        // حقل خاص لتخزين العنوان
         private string _title;
+
+        // حقل خاص لعداد مرات الاستعارة
         private int _borrowCount;
 
-        // قراءة فقط: معرف فريد (GUID) يُعطى عند الإنشاء
+        // حدث يُطلق عند تغيّر مهم (مثلاً: الوصول إلى شعبية معينة)
+        public event EventHandler<ItemEventArgs> StatusChanged;
+
+        /// <summary>قراءة المعرف الفريد (GUID).</summary>
         public Guid Id => _id;
 
-        // خاصية عامة مع التحقق عند التعيين
+        /// <summary>العنوان مع تحقق عند التعيين.</summary>
         public string Title
         {
             get => _title;
             set
             {
-                if (!Validator.IsNonEmpty(value))
-                    throw new ArgumentException("Title must not be empty.", nameof(Title));
+                Validator.ThrowIfNullOrEmpty(value, nameof(Title));
                 _title = value.Trim();
             }
         }
 
-        // عدد مرات الاستعارة — قراءة فقط من الخارج
+        /// <summary>قراءة عدد الاستعارات من الخارج.</summary>
         public int BorrowCount => _borrowCount;
 
-        // البناء: يعطينا Id جديد ويعين عنوان مع التحقق
+        /// <summary>عتبة افتراضية للاعتبار "شعبي". يمكن إعادة تعريفها في الفئات الفرعية.</summary>
+        protected virtual int PopularThreshold => 10;
+
+        /// <summary>الباني: يعين Id جديدًا ويستخدم الـ setter للعنوان (فيتفقده).</summary>
         protected ItemBase(string title)
         {
             _id = Guid.NewGuid();
-            Title = title;   // يستخدم setter (فيه التحقق)
+            Title = title;
             _borrowCount = 0;
         }
 
         /// <summary>
-        /// دالة مجردة يجب أن تعيد تعريفها في الفئة الفرعية.
-        /// المقصود: تنفيذ استخدام/استعارة العنصر بآلية النوع المحدد.
-        /// الفئة الفرعية يجب أن ترفع _borrowCount بالطريقة المناسبة (مثلاً عن طريق استدعاء IncrementBorrowCount()).
-        /// </summary>
-        public abstract void Use();
-
-        /// <summary>
-        /// دالة افتراضية لعرض معلومات العنصر — يمكن للفئات الفرعية أن توسع/تعدل السلوك.
-        /// </summary>
-        public virtual void DisplayInfo()
-        {
-            Console.WriteLine($"{GetType().Name} [{Id}]: {Title} (Borrows: {BorrowCount})");
-        }
-
-        /// <summary>
-        /// طريقة محمية (protected) لزيادة عداد الاستعارات.
-        /// متاحة للفئات الفرعية لكي يحدثوا العداد بطريقة محمية.
-        /// لا نجعل الحقل عامّاً ولا نسمح بتعديله مباشرة من أي مكان آخر.
+        /// طريقة محمية لزيادة عداد الاستعارات.
+        /// الفئات الفرعية تستدعيها عند حدوث "Use" فعلي.
+        /// وتطلق حدثًا عند الوصول للعتبة.
         /// </summary>
         protected void IncrementBorrowCount()
         {
             _borrowCount++;
+            if (_borrowCount == PopularThreshold)
+            {
+                OnStatusChanged(new ItemEventArgs(this, $"Item '{Title}' reached popularity threshold ({PopularThreshold})."));
+            }
         }
+
+        /// <summary>يسمح بإطلاق الحدث للمشتركين.</summary>
+        protected void OnStatusChanged(ItemEventArgs e)
+        {
+            StatusChanged?.Invoke(this, e);
+        }
+
+        /// <summary>عرض المعلومات بطريقة مفصّلة (Detailed Format).</summary>
+        public virtual void DisplayInfo()
+        {
+            Console.WriteLine($"\n{GetType().Name} [{Id}]");
+            Console.WriteLine($"  Title: {Title}");
+            Console.WriteLine($"  BorrowCount: {BorrowCount}");
+        }
+
+        /// <summary>دالة مجردة تصف "استخدام" العنصر — يجب على الفئات الفرعية تنفيذها.</summary>
+        public abstract void Use();
     }
 }

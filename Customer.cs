@@ -1,102 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LibrarySystem
 {
-    internal class Customer : Users, DisplayInfoInterface, NotificationInterface
+    /// <summary>
+    /// فئة تمثل عميل/عضو المكتبة.
+    /// تطبق IDisplayInfo و INotification لعرض البيانات واستقبال الإشعارات.
+    /// </summary>
+    public class Customer : Users, IDisplayInfo, INotification
     {
-        private readonly int id;
-        private DateTime DateOfRegestration;
-        private Book BorrowedBooks;
+        // قوائم المعرفات للعناصر المستعارة والمحجوزة
+        private readonly List<Guid> _borrowedItems = new();
+        private readonly List<Guid> _reservedItems = new();
 
-        public Customer(int id ,string fullname, string email, string username, string password, DateTime dateofregestration,
-            Book borrowedBooks) : base(id, fullname, email, username, password)
+        private readonly DateTime _dateOfRegistration;
+
+        public Customer(int id, string fullName, string email, string userName, string password, DateTime registrationDate)
+            : base(id, fullName, email, userName, password)
         {
-            this.DateOfRegestration = dateofregestration;
-            this.BorrowedBooks = borrowedBooks;
+            _dateOfRegistration = registrationDate;
         }
-        public int CustomerID
+
+        /// <summary>إضافة عنصر إلى سجل الاستعارات.</summary>
+        public void AddBorrowed(Guid itemId)
         {
-            get { return id; }
+            if (!_borrowedItems.Contains(itemId))
+                _borrowedItems.Add(itemId);
         }
-        public string _FullName
+
+        /// <summary>إزالة عنصر من سجل الاستعارات عند الإرجاع.</summary>
+        public void RemoveBorrowed(Guid itemId) => _borrowedItems.Remove(itemId);
+
+        /// <summary>إضافة عنصر إلى الحجوزات.</summary>
+        public void AddReservation(Guid itemId)
         {
-            get { return FullName; }
-            private set
-            {
-                if (string.IsNullOrEmpty(value) || value.Length <= 2)
-                    throw new ArgumentException("The FullName should not " +
-                            "be empty or less than three characters");
-                FullName = value;
-            }
+            if (!_reservedItems.Contains(itemId))
+                _reservedItems.Add(itemId);
         }
-        public string _UserName
+
+        /// <summary>إزالة عنصر من الحجوزات.</summary>
+        public void RemoveReservation(Guid itemId) => _reservedItems.Remove(itemId);
+
+        /// <summary>عرض معلومات مفصّلة عن العميل (Detailed Format).</summary>
+        public void DisplayInfo()
         {
-            get { return UserName; }
-            private set
-            {
-                if (string.IsNullOrEmpty(value) || value.Length <= 2)
-                    throw new ArgumentException("The UserName should not " +
-                            "be empty or less than three characters");
-                UserName = value;
-            }
+            Console.WriteLine($"\nCustomer [{Id}]");
+            Console.WriteLine($"  Name: {FullName}");
+            Console.WriteLine($"  Email: {Email}");
+            Console.WriteLine($"  Username: {UserName}");
+            Console.WriteLine($"  Registered: {_dateOfRegistration.ToShortDateString()}");
+            Console.WriteLine($"  Borrowed Items Count: {_borrowedItems.Count}");
+            Console.WriteLine($"  Reserved Items Count: {_reservedItems.Count}");
         }
-        public string _Password
-        {
-            get { return Password; }
-            private set
-            {
-                if (string.IsNullOrEmpty(value) || value.Length <= 5)
-                    throw new ArgumentException("The Password should not " +
-                            "be empty or less than three characters");
-                Password = value;
-            }
-        }
-        public void UpdateEmail(string newEmail)
-        {
-            if (!string.IsNullOrWhiteSpace(Email) && Email.Contains("@") && Email.Contains("."))
-            {
-                Console.WriteLine("The email is correct");
-            }
-            else
-            {
-                Console.WriteLine("Invalid or empty email");
-            }
-        }
-        public virtual void DisplayInfo()
-        {
-            Console.WriteLine(this.id + this.FullName + this.Email + this.UserName + this.Password +
-                this.DateOfRegestration + this.BorrowedBooks);
-        }
-        public DateTime _DateOfRegestration
-        {
-            get
-            {
-                return DateOfRegestration;
-            }
-            private set
-            {
-                DateOfRegestration = value;
-            }
-        }
-        public Book _BorrowedBooks
-        {
-            get
-            {
-                return BorrowedBooks;
-            }
-            private set
-            {
-                BorrowedBooks = value;
-            }
-        }
+
+        /// <summary>استقبال إشعار نصي يُعرض على Console .</summary>
         public void SendNotification(string message)
         {
-            Console.WriteLine($"{UserName}: {Email}\nNew message for you:" +
-                              $"{message}");
+            Console.WriteLine($"[Notification to Customer {UserName}]: {message}");
         }
     }
 }
